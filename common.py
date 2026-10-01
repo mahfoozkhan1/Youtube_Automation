@@ -33,13 +33,13 @@ def gemini_json(prompt, temperature=0.8):
     errors = []
     for model in MODEL_CANDIDATES:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        for attempt in range(3):
+        for attempt in range(4):
             r = requests.post(url, params={"key": os.environ["GEMINI_API_KEY"]}, json=body, timeout=180)
-            if r.status_code in (500, 503) or (r.status_code == 429 and attempt < 2):
-                time.sleep(20 * (attempt + 1))
+            if r.status_code in (429, 500, 502, 503, 504) and attempt < 3:
+                time.sleep(15 * (attempt + 1))  # overloaded / rate limited: wait and retry
                 continue
             break
-        if r.status_code in (400, 403, 404, 429):
+        if r.status_code in (400, 403, 404, 429, 500, 502, 503, 504):
             errors.append(f"{model}: {r.status_code} {r.text[:150]}")
             continue
         r.raise_for_status()
